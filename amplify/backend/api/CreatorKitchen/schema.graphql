@@ -1,0 +1,53 @@
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+type Content
+  @model
+  @auth(rules: [
+    { allow: owner, ownerField: "author" },
+    { allow: public, operations: [read] }
+  ]) {
+  id: ID! @primaryKey(sortKeyFields: ["siteID"])
+  siteID: ID! @index(name: "bySite")
+  parentID: ID! @index(name: "byParent", queryField: "contentByParentID", sortKeyFields: ["siteID"])
+  slug: String! @index(name: "contentBySiteAndSlug", queryField: "contentBySiteAndSlug", sortKeyFields: ["siteID"])
+  published: [Content] @hasMany(indexName: "byParent", fields: ["parentID"])
+  author: Author! @hasOne
+  title: String
+  description: String
+  content: String
+  media: AWSJSON
+  status: ContentStatus
+  originalCreatedAt: AWSDateTime
+}
+
+type Author
+  @model
+  @auth(rules: [
+    { allow: owner, ownerField: "username" },
+    { allow: public, operations: [read] }
+  ]) {
+  id: ID!
+  avatarUrl: String!
+  name: String!
+  bio: String!
+  links: AWSJSON
+}
+
+# TODO: Ensure subdomain and domain are unique in update
+type Site
+  @model
+  @auth(rules: [
+    { allow: owner, ownerField: "username" },
+    { allow: public, operations: [read] }
+  ]) {
+  id: ID!
+  subdomain: String @index(name: "siteBySubdomain", queryField: "siteBySubdomain")
+  customDomain: String @index(name: "siteByCustomDomain", queryField: "siteByCustomDomain")
+  username: String @index(name: "siteByUsername", queryField: "siteByUsername")
+  title: String!
+  description: String!
+  contents: [Content] @hasMany(indexName: "bySite", fields: ["id"])
+}
